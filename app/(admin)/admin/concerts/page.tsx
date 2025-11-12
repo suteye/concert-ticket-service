@@ -20,23 +20,26 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Edit2, Trash2, Users } from "lucide-react";
+import { Plus, Edit2, Trash2, Users, Upload, X } from "lucide-react";
 import { Concert, ConcertStatus } from "@/types";
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
 import Link from "next/link";
+import Image from "next/image";
 
 export default function ConcertsPage() {
   const [concerts, setConcerts] = useState<Concert[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingConcert, setEditingConcert] = useState<Concert | null>(null);
+  const [uploading, setUploading] = useState(false);
   const [formData, setFormData] = useState({
     title: "",
     event_date: "",
     event_url: "",
     description: "",
     service_fee: undefined as number | undefined,
+    image_url: "",
     status: "upcoming" as ConcertStatus,
   });
 
@@ -58,6 +61,38 @@ export default function ConcertsPage() {
     };
     loadConcerts();
   }, [fetchConcerts]);
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setFormData(prev => ({ ...prev, image_url: data.url }));
+      } else {
+        alert('ไม่สามารถอัพโหลดรูปได้');
+      }
+    } catch (error) {
+      console.error('Upload error:', error);
+      alert('เกิดข้อผิดพลาดในการอัพโหลด');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setFormData(prev => ({ ...prev, image_url: "" }));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -105,6 +140,7 @@ export default function ConcertsPage() {
       event_date: format(new Date(concert.event_date), "yyyy-MM-dd'T'HH:mm"),
       event_url: concert.event_url || "",
       description: concert.description || "",
+      image_url: concert.image_url || "",
       status: concert.status,
       service_fee: concert.service_fee,
     });
@@ -119,6 +155,7 @@ export default function ConcertsPage() {
       event_url: "",
       description: "",
       service_fee: undefined,
+      image_url: "",
       status: "upcoming",
     });
   };
@@ -148,13 +185,58 @@ export default function ConcertsPage() {
                 เพิ่มงานใหม่
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl">
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>
                   {editingConcert ? "แก้ไขงาน" : "เพิ่มงานใหม่"}
                 </DialogTitle>
               </DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
+                {/* Image Upload Section */}
+                <div className="space-y-2">
+                  <Label>รูปภาพงาน</Label>
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
+                    {formData.image_url ? (
+                      <div className="relative">
+                        <Image
+                          src={formData.image_url}
+                          alt="Preview"
+                          width={400}
+                          height={200}
+                          className="w-full h-48 object-cover rounded-lg"
+                        />
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="sm"
+                          className="absolute top-2 right-2"
+                          onClick={handleRemoveImage}
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="text-center">
+                        <Upload className="w-12 h-12 text-gray-400 mx-auto mb-2" />
+                        <p className="text-gray-500 mb-2">อัพโหลดรูปภาพ</p>
+                        <Input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleImageUpload}
+                          disabled={uploading}
+                          className="max-w-xs mx-auto"
+                        />
+                        <p className="text-xs text-gray-400 mt-1">
+                          รองรับ JPG, PNG (ขนาดไม่เกิน 5MB)
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                  {uploading && (
+                    <p className="text-blue-600 text-sm">กำลังอัพโหลด...</p>
+                  )}
+                </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="title">ชื่องาน *</Label>
                   <Input
@@ -204,6 +286,7 @@ export default function ConcertsPage() {
                     rows={3}
                   />
                 </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="service_fee">ค่าบริการ (บาท/ใบ)</Label>
                   <Input
@@ -225,6 +308,7 @@ export default function ConcertsPage() {
                     ค่าบริการต่อใบบัตร (ถ้าไม่ระบุจะแสดงช่วงราคา 300-500)
                   </p>
                 </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="status">สถานะ</Label>
                   <Select
@@ -252,7 +336,7 @@ export default function ConcertsPage() {
                   >
                     ยกเลิก
                   </Button>
-                  <Button type="submit">
+                  <Button type="submit" disabled={uploading}>
                     {editingConcert ? "บันทึกการแก้ไข" : "เพิ่มงาน"}
                   </Button>
                 </div>
@@ -277,48 +361,71 @@ export default function ConcertsPage() {
               <Card key={concert.id}>
                 <CardContent className="p-6">
                   <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <h3 className="text-xl font-semibold text-gray-900">
-                        {concert.title}
-                      </h3>
-                      <p className="text-sm text-gray-500 mt-1">
-                        {format(new Date(concert.event_date), "PPPp", {
-                          locale: th,
-                        })}
-                      </p>
-                      {concert.description && (
-                        <p className="text-gray-600 mt-2">
-                          {concert.description}
+                    <div className="flex space-x-4 flex-1">
+                      {/* Concert Image */}
+                      {concert.image_url && (
+                        <div className="flex-shrink-0">
+                          <Image
+                            src={concert.image_url}
+                            alt={concert.title}
+                            width={120}
+                            height={80}
+                            className="w-30 h-20 object-cover rounded-lg"
+                          />
+                        </div>
+                      )}
+                      
+                      {/* Concert Details */}
+                      <div className="flex-1">
+                        <h3 className="text-xl font-semibold text-gray-900">
+                          {concert.title}
+                        </h3>
+                        <p className="text-sm text-gray-500 mt-1">
+                          {format(new Date(concert.event_date), "PPPp", {
+                            locale: th,
+                          })}
                         </p>
-                      )}
-                      {concert.event_url && (
-                        <a
-                          href={concert.event_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-600 hover:underline text-sm mt-2 inline-block"
-                        >
-                          ดูลิงก์งาน →
-                        </a>
-                      )}
-                      <div className="mt-3">
-                        <span
-                          className={`inline-block px-3 py-1 text-xs font-medium rounded-full ${
-                            concert.status === "upcoming"
-                              ? "bg-green-100 text-green-800"
+                        {concert.service_fee && (
+                          <p className="text-sm font-medium text-green-600 mt-1">
+                            ค่าบริการ: ฿{concert.service_fee.toLocaleString()}/ใบ
+                          </p>
+                        )}
+                        {concert.description && (
+                          <p className="text-gray-600 mt-2 text-sm">
+                            {concert.description}
+                          </p>
+                        )}
+                        {concert.event_url && (
+                          <a
+                            href={concert.event_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:underline text-sm mt-2 inline-block"
+                          >
+                            ดูลิงก์งาน →
+                          </a>
+                        )}
+                        <div className="mt-3">
+                          <span
+                            className={`inline-block px-3 py-1 text-xs font-medium rounded-full ${
+                              concert.status === "upcoming"
+                                ? "bg-green-100 text-green-800"
+                                : concert.status === "completed"
+                                ? "bg-blue-100 text-blue-800"
+                                : "bg-gray-100 text-gray-800"
+                            }`}
+                          >
+                            {concert.status === "upcoming"
+                              ? "กำลังจะมาถึง"
                               : concert.status === "completed"
-                              ? "bg-blue-100 text-blue-800"
-                              : "bg-gray-100 text-gray-800"
-                          }`}
-                        >
-                          {concert.status === "upcoming"
-                            ? "กำลังจะมาถึง"
-                            : concert.status === "completed"
-                            ? "เสร็จสิ้น"
-                            : "ยกเลิก"}
-                        </span>
+                              ? "เสร็จสิ้น"
+                              : "ยกเลิก"}
+                          </span>
+                        </div>
                       </div>
                     </div>
+                    
+                    {/* Action Buttons */}
                     <div className="flex items-center space-x-2 ml-4">
                       <Link href={`/admin/concerts/${concert.id}/customers`}>
                         <Button variant="outline" size="sm">

@@ -13,6 +13,7 @@ export interface Concert {
     event_url?: string;
     description?: string;
     service_fee?: number;
+    image_url?: string;
     status: ConcertStatus;
     created_at: string;
     updated_at: string;

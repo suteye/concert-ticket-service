@@ -332,7 +332,7 @@ export default function HirePage() {
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              {[1, 2, 3, 4, 5, 6, 7, 8].map((num) => (
+                              {[1, 2, 3, 4].map((num) => (
                                 <SelectItem key={num} value={num.toString()}>
                                   {num} ใบ
                                 </SelectItem>
@@ -448,8 +448,7 @@ export default function HirePage() {
                             <SelectTrigger className="mt-1 text-sm sm:text-base">
                               <SelectValue />
                             </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="pickup">รับเอง (ฟรี)</SelectItem>
+                            <SelectContent>                             
                               <SelectItem value="mail">ส่งทางไปรษณีย์ (+50 บาท)</SelectItem>
                             </SelectContent>
                           </Select>

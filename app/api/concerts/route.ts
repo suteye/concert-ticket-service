@@ -1,23 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
+import { supabase, supabaseAdmin } from '@/lib/supabase'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 
 //GET - ดึงรายการคอนเสิร์ตทั้งหมด
 export async function GET(request: NextRequest) {
-    try {
-        const { data, error } = await supabase
-            .from('concerts')
-            .select('*')
-            .order('event_date', { ascending: true })
+  try {
+    const { data, error } = await supabase
+      .from('concerts')
+      .select('*')
+      .order('event_date', { ascending: true })
 
-        if (error) throw error
+    if (error) throw error
 
-        return NextResponse.json(data, { status: 200 })
+    return NextResponse.json(data, { status: 200 })
 
-    } catch (error) {
-        return NextResponse.json({ error: 'Failed to fetch concerts' }, { status: 500 })
-    }
+  } catch (error) {
+    return NextResponse.json({ error: 'Failed to fetch concerts' }, { status: 500 })
+  }
 }
 
 //POST - สร้างคอนเสิร์ตใหม่ (ต้องล็อกอิน)
@@ -30,21 +30,23 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json();
 
-    const { data, error } = await supabase
+    const { data: concert, error } = await supabaseAdmin
       .from('concerts')
-      .insert({
+      .insert([{
         title: body.title,
         event_date: body.event_date,
         event_url: body.event_url,
         description: body.description,
-        status: body.status || 'upcoming',
-      })
+        service_fee: body.service_fee,
+        image_url: body.image_url,
+        status: body.status
+      }])
       .select()
-      .single();
+      .single()
 
     if (error) throw error;
 
-    return NextResponse.json(data, { status: 201 });
+    return NextResponse.json(concert, { status: 201 });
   } catch (error) {
     return NextResponse.json({ error: 'Failed to create concert' }, { status: 500 });
   }
@@ -61,7 +63,7 @@ export async function PUT(req: NextRequest) {
     const body = await req.json();
     const { id, ...updateData } = body;
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('concerts')
       .update({ ...updateData, updated_at: new Date().toISOString() })
       .eq('id', id)
@@ -91,7 +93,7 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: 'Concert ID required' }, { status: 400 });
     }
 
-    const { error } = await supabase.from('concerts').delete().eq('id', id);
+    const { error } = await supabaseAdmin.from('concerts').delete().eq('id', id);
 
     if (error) throw error;
 

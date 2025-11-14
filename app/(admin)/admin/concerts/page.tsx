@@ -105,6 +105,7 @@ export default function ConcertsPage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ id: editingConcert.id, ...formData }),
         });
+        console.log("Updating concert:", { id: editingConcert.id, ...formData });
       } else {
         // Create
         await fetch("/api/concerts", {

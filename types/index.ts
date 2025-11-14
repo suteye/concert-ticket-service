@@ -32,6 +32,10 @@ export interface Customer {
   password?: string;
   kplus_number?: string;
   delivery_type?: DeliveryType;
+  tracking_number?: string;
+  courier_service?: string;
+  delivery_date?: string;
+  seat_number?: string;
   ticket_name?: string;
   price?: number;
   phone: string;
@@ -54,5 +58,5 @@ export interface DashboardStats {
 }
 
 export type DeliveryType = 'pickup' | 'mail';
-export type CustomerStatus = 'pending' | 'paid' | 'completed';
+export type CustomerStatus = 'pending' | 'processing' | 'booked' | 'paid' | 'completed' | 'failed' | 'shipped';
 export type ConcertStatus = 'upcoming' | 'completed' | 'cancelled';

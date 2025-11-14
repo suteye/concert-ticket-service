@@ -62,6 +62,7 @@ export async function PUT(req: NextRequest) {
 
     const body = await req.json();
     const { id, ...updateData } = body;
+    console.log("Received update data:", body);
 
     const { data, error } = await supabaseAdmin
       .from('concerts')

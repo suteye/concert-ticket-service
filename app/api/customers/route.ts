@@ -96,6 +96,7 @@ export async function POST(request: NextRequest) {
 }
 
 // PUT - แก้ไขข้อมูลลูกค้า
+
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json()
@@ -104,20 +105,21 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'id เป็นฟิลด์ที่จำเป็น' }, { status: 400 })
     }
 
-    // เตรียมข้อมูลสำหรับ update (ไม่รวม id)
     const { id, created_at, updated_at, concert, ...updateData } = body
 
-    // อัพเดทเวลา
     updateData.updated_at = new Date().toISOString()
+
+    for (const key in updateData) {
+      if (updateData[key] === "") {
+        updateData[key] = null
+      }
+    }
 
     const { data: customer, error } = await supabaseAdmin
       .from('customers')
       .update(updateData)
       .eq('id', id)
-      .select(`
-        *,
-        concert:concerts(*)
-      `)
+      .select(`*, concert:concerts(*)`)
       .single()
 
     if (error) {
@@ -130,11 +132,13 @@ export async function PUT(request: NextRequest) {
     }
 
     return NextResponse.json(customer)
+
   } catch (error) {
     console.error('API error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
+
 
 // DELETE - ลบลูกค้า
 export async function DELETE(request: NextRequest) {
